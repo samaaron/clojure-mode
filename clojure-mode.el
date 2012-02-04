@@ -349,7 +349,8 @@ elements of a def* forms."
                               "defalias" "defhinted" "defmacro-"
                               "defn-memo" "defnk" "defonce-"
                               "defstruct-" "defunbound" "defunbound-"
-                              "defvar" "defvar-"))
+                              "defvar" "defvar-"
+                              "definst" "defsynth" "defcgen"))
                 ;; Function declarations.
                 "\\)\\>"
                 ;; Any whitespace
