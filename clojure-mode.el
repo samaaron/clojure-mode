@@ -334,7 +334,8 @@ elements of a def* forms."
                               "defalias" "defhinted" "defmacro-"
                               "defn-memo" "defnk" "defonce-"
                               "defstruct-" "defunbound" "defunbound-"
-                              "defvar" "defvar-"))
+                              "defvar" "defvar-"
+                              "definst" "defsynth" "defcgen"))
                 ;; Function declarations.
                 "\\)\\>"
                 ;; Any whitespace
@@ -947,7 +948,7 @@ returned."
 (defvar clojure-project-root-file "project.clj")
 
 ;; Pipe to $SHELL to work around mackosecks GUI Emacs $PATH issues.
-(defcustom clojure-swank-command 
+(defcustom clojure-swank-command
   (if (or (locate-file "lein" exec-path) (locate-file "lein.bat" exec-path))
       "lein jack-in %s"
     "echo \"lein jack-in %s\" | $SHELL -l")
