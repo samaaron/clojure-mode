@@ -350,6 +350,16 @@ elements of a def* forms."
                 ;; Possibly type or metadata
                 "\\(?:#?^\\(?:{[^}]*}\\|\\sw+\\)[ \r\n\t]*\\)*"
                 "\\(\\sw+\\)?")
+       (1 font-lock-type-face)
+       (2 font-lock-function-name-face nil t))
+      (,(concat "\\(\\(?:[a-z\.-]+/\\)?def\[a-z\]*-?\\)"
+                ;; Function declarations.
+                "\\>"
+                ;; Any whitespace
+                "[ \r\n\t]*"
+                ;; Possibly type or metadata
+                "\\(?:#?^\\(?:{[^}]*}\\|\\sw+\\)[ \r\n\t]*\\)*"
+                "\\(\\sw+\\)?")
        (1 font-lock-keyword-face)
        (2 font-lock-function-name-face nil t))
       ;; Deprecated functions
@@ -1192,9 +1202,17 @@ The arguments are dir, hostname, and port.  The return value should be an `alist
 
 
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.clj$" . clojure-mode))
-(add-to-list 'interpreter-mode-alist '("jark" . clojure-mode))
-(add-to-list 'interpreter-mode-alist '("cake" . clojure-mode))
+(progn
+  (put 'clojure-test-ns-segment-position 'safe-local-variable 'integerp)
+  (put 'clojure-mode-load-command 'safe-local-variable 'stringp)
+  (put 'clojure-swank-command 'safe-local-variable 'stringp)
+
+  (add-hook 'slime-connected-hook 'clojure-enable-slime-on-existing-buffers)
+  (add-hook 'slime-indentation-update-hooks 'put-clojure-indent)
+
+  (add-to-list 'auto-mode-alist '("\\.clj$" . clojure-mode))
+  (add-to-list 'interpreter-mode-alist '("jark" . clojure-mode))
+  (add-to-list 'interpreter-mode-alist '("cake" . clojure-mode)))
 
 (provide 'clojure-mode)
 ;;; clojure-mode.el ends here
