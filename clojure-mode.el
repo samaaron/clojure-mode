@@ -189,7 +189,7 @@
         "load-file" "load-reader" "load-string" "loaded-libs" "locking"
         "long" "long-array" "longs" "loop" "macroexpand"
         "macroexpand-1" "make-array" "make-hierarchy" "map" "map?"
-        "mapcat" "max" "max-key" "memfn" "memoize"
+        "map-indexed" "mapcat" "max" "max-key" "memfn" "memoize"
         "merge" "merge-with" "meta" "method-sig" "methods"
         "min" "min-key" "mod" "name" "namespace"
         "neg?" "newline" "next" "nfirst" "nil?"
@@ -913,7 +913,7 @@ This function also returns nil meaning don't specify the indentation."
               ((or (eq method 'defun)
                    (and (null method)
                         (> (length function) 3)
-                        (string-match "\\`\\(?:\\S +/\\)?def\\|with-"
+                        (string-match "\\`\\(?:\\S +/\\)?\\(def\\|with-\\)"
                                       function)))
                (lisp-indent-defform state indent-point))
 
