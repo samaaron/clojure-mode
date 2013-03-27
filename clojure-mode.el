@@ -6,7 +6,7 @@
 ;;          Lennart Staflin <lenst@lysator.liu.se>
 ;;          Phil Hagelberg <technomancy@gmail.com>
 ;; URL: http://github.com/technomancy/clojure-mode
-;; Version: 2.0.0
+;; Version: 2.1.0
 ;; Keywords: languages, lisp
 
 ;; This file is not part of GNU Emacs.
@@ -388,7 +388,7 @@ numbers count from the end:
   leiningen.compile -> leiningen.test.compile (uses 1)
   clojure.http.client -> clojure.http.test.client (uses -1)")
 
-(defvar clojure-mode-version "2.0.0"
+(defvar clojure-mode-version "2.1.0"
   "The current version of `clojure-mode'.")
 
 (defun clojure-mode-display-version ()
@@ -1279,6 +1279,8 @@ Clojure test file for the given namespace.")
   (put 'clojure-mode-load-command 'safe-local-variable 'stringp)
 
   (add-to-list 'auto-mode-alist '("\\.clj\\'" . clojure-mode))
+  (add-to-list 'auto-mode-alist '("\\.dtm\\'" . clojure-mode))
+  (add-to-list 'auto-mode-alist '("\\.edn\\'" . clojure-mode))
   (add-to-list 'interpreter-mode-alist '("jark" . clojure-mode))
   (add-to-list 'interpreter-mode-alist '("cake" . clojure-mode)))
 
