@@ -49,6 +49,15 @@
 
 ;;; Code:
 
+
+;;; Compatibility
+(eval-and-compile
+  ;; `setq-local' for Emacs 24.2 and below
+  (unless (fboundp 'setq-local)
+    (defmacro setq-local (var val)
+      "Set variable VAR to value VAL in current buffer."
+      `(set (make-local-variable ',var) ,val))))
+
 (eval-when-compile
   (defvar calculate-lisp-indent-last-sexp)
   (defvar font-lock-beg)
@@ -235,7 +244,8 @@
         "var?" "vary-meta" "vec" "vector" "vector?"
         "when" "when-first" "when-let" "when-not" "while"
         "with-bindings" "with-bindings*" "with-in-str" "with-loading-context" "with-local-vars"
-        "with-meta" "with-open" "with-out-str" "with-precision" "xml-seq" "zipmap"
+        "with-meta" "with-open" "with-out-str" "with-precision"
+        "with-redefs" "with-redefs-fn" "xml-seq" "zipmap"
         ) t)
          "\\>")
        1 font-lock-builtin-face)
@@ -342,6 +352,13 @@ Clojure to load that file."
   :group 'clojure
   :safe 'stringp)
 
+(defcustom clojure-defun-style-default-indent nil
+  "Default indenting of function and macro forms using defun rules unless
+otherwise defined via `put-clojure-indent`, `define-clojure-indent`, etc."
+  :type 'boolean
+  :group 'clojure
+  :safe 'booleanp)
+
 (defcustom clojure-use-backtracking-indent t
   "Set to non-nil to enable backtracking/context sensitive indentation."
   :type 'boolean
@@ -353,6 +370,19 @@ Clojure to load that file."
   :type 'integer
   :group 'clojure
   :safe 'integerp)
+
+(defcustom clojure-omit-space-between-tag-and-delimiters (list ?\[ ?\{)
+  "List of opening delimiter characters allowed to appear
+immediately after a reader literal tag with no space, as
+in :db/id[:db.part/user]"
+  :type '(set (const :tag "[" ?\[)
+              (const :tag "{" ?\{)
+              (const :tag "(" ?\()
+              (const :tag "\"" ?\"))
+  :group 'clojure
+  :safe (lambda (value)
+          (and (listp value)
+               (every 'characterp value))))
 
 (defvar clojure-mode-map
   (let ((map (make-sparse-keymap)))
@@ -441,6 +471,23 @@ numbers count from the end:
           t))
     t))
 
+(defun clojure-no-space-after-tag (endp delimiter)
+  "Do not insert a space between a reader-literal tag and an
+  opening delimiter in the list
+  clojure-omit-space-between-tag-and-delimiters. Allows you to
+  write things like #db/id[:db.part/user] without inserting a
+  space between the tag and the opening bracket."
+  (if endp
+      t
+    (or (not (member delimiter clojure-omit-space-between-tag-and-delimiters))
+        (save-excursion
+          (let ((orig-point (point)))
+            (not (and (re-search-backward
+                       "#\\([a-zA-Z0-9._-]+/\\)?[a-zA-Z0-9._-]+"
+                       (line-beginning-position)
+                       t)
+                      (= orig-point (match-end 0)))))))))
+
 ;;;###autoload
 (define-derived-mode clojure-mode clojure-parent-mode "Clojure"
   "Major mode for editing Clojure code - similar to Lisp mode.
@@ -453,22 +500,19 @@ or to switch back to an existing one.
 
 Entry to this mode calls the value of `clojure-mode-hook'
 if that value is non-nil."
-  (set (make-local-variable 'imenu-create-index-function)
-       (lambda ()
-         (imenu--generic-function '((nil clojure-match-next-def 0)))))
-  (set (make-local-variable 'indent-tabs-mode) nil)
+  (setq-local imenu-create-index-function
+              (lambda ()
+                (imenu--generic-function '((nil clojure-match-next-def 0)))))
+  (setq-local indent-tabs-mode nil)
   (lisp-mode-variables nil)
-  (set (make-local-variable 'comment-start-skip)
-       "\\(\\(^\\|[^\\\\\n]\\)\\(\\\\\\\\\\)*\\)\\(;+\\|#|\\) *")
-  (set (make-local-variable 'lisp-indent-function)
-       'clojure-indent-function)
+  (setq-local comment-start-skip
+              "\\(\\(^\\|[^\\\\\n]\\)\\(\\\\\\\\\\)*\\)\\(;+\\|#|\\) *")
+  (setq-local lisp-indent-function 'clojure-indent-function)
   (when (< emacs-major-version 24)
-    (set (make-local-variable 'forward-sexp-function)
-         'clojure-forward-sexp))
-  (set (make-local-variable 'lisp-doc-string-elt-property)
-       'clojure-doc-string-elt)
-  (set (make-local-variable 'inferior-lisp-program) clojure-inf-lisp-command)
-  (set (make-local-variable 'parse-sexp-ignore-comments) t)
+    (setq-local forward-sexp-function 'clojure-forward-sexp))
+  (setq-local lisp-doc-string-elt-property 'clojure-doc-string-elt)
+  (setq-local inferior-lisp-program clojure-inf-lisp-command)
+  (setq-local parse-sexp-ignore-comments t)
 
   (clojure-mode-font-lock-setup)
   (add-hook 'paredit-mode-hook
@@ -477,7 +521,9 @@ if that value is non-nil."
                 (define-key clojure-mode-map "{" 'paredit-open-curly)
                 (define-key clojure-mode-map "}" 'paredit-close-curly)
                 (add-to-list 'paredit-space-for-delimiter-predicates
-                             'clojure-space-for-delimiter-p)))))
+                             'clojure-space-for-delimiter-p)
+                (add-to-list 'paredit-space-for-delimiter-predicates
+                             'clojure-no-space-after-tag)))))
 
 (defun clojure-display-inferior-lisp-buffer ()
   "Display a buffer bound to `inferior-lisp-buffer'."
@@ -514,7 +560,7 @@ Called by `imenu--generic-function'."
 (defun clojure-mode-font-lock-setup ()
   "Configures font-lock for editing Clojure code."
   (interactive)
-  (set (make-local-variable 'font-lock-multiline) t)
+  (setq-local font-lock-multiline t)
   (add-to-list 'font-lock-extend-region-functions
                'clojure-font-lock-extend-region-def t)
 
@@ -524,7 +570,7 @@ Called by `imenu--generic-function'."
     (make-local-variable 'clojure-font-lock-keywords)
     (add-to-list 'clojure-font-lock-keywords
                  'clojure-font-lock-mark-comment t)
-    (set (make-local-variable 'open-paren-in-column-0-is-defun-start) nil))
+    (setq-local open-paren-in-column-0-is-defun-start nil))
 
   (setq font-lock-defaults
         '(clojure-font-lock-keywords    ; keywords
@@ -991,6 +1037,9 @@ This function also returns nil meaning don't specify the indentation."
                (goto-char open-paren)
                (1+ (current-column)))
               ((or (eq method 'defun)
+                   (and clojure-defun-style-default-indent
+                        ;; largely to preserve useful alignment of :require, etc in ns
+                        (not (string-match "^:" function)))
                    (and (null method)
                         (> (length function) 3)
                         (string-match "\\`\\(?:\\S +/\\)?\\(def\\|with-\\)"
@@ -1332,7 +1381,9 @@ remain indented by four spaces after refilling."
   (let* ((project-dir (file-truename
                        (locate-dominating-file default-directory
                                                "project.clj")))
-         (relative (substring (file-truename (buffer-file-name)) (length project-dir) -4)))
+         (relative (substring (file-truename (buffer-file-name))
+                              (length project-dir)
+                              (- (length (file-name-extension (buffer-file-name) t))))))
     (replace-regexp-in-string
      "_" "-" (mapconcat 'identity (cdr (split-string relative "/")) "."))))
 
