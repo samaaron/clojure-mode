@@ -27,7 +27,7 @@
 ;;   ;; require or autoload paredit-mode
 ;;   (add-hook 'clojure-mode-hook 'paredit-mode)
 
-;; See nREPL.el (http://github.com/clojure-emacs/nrepl.el) for
+;; See CIDER (http://github.com/clojure-emacs/cider) for
 ;; better interaction with subprocesses via nREPL.
 
 ;;; License:
@@ -515,6 +515,7 @@ if that value is non-nil."
   (setq-local parse-sexp-ignore-comments t)
 
   (clojure-mode-font-lock-setup)
+  (setq-local open-paren-in-column-0-is-defun-start nil)
   (add-hook 'paredit-mode-hook
             (lambda ()
               (when (>= paredit-version 21)
@@ -1039,7 +1040,8 @@ This function also returns nil meaning don't specify the indentation."
               ((or (eq method 'defun)
                    (and clojure-defun-style-default-indent
                         ;; largely to preserve useful alignment of :require, etc in ns
-                        (not (string-match "^:" function)))
+                        (not (string-match "^:" function))
+                        (not method))
                    (and (null method)
                         (> (length function) 3)
                         (string-match "\\`\\(?:\\S +/\\)?\\(def\\|with-\\)"
@@ -1461,8 +1463,7 @@ word test in it and whether the file lives under the test/ directory."
 
 ;;;###autoload
 (progn
-  (add-to-list 'auto-mode-alist '("\\.clj\\'" . clojure-mode))
-  (add-to-list 'auto-mode-alist '("\\.cljs\\'" . clojure-mode))
+  (add-to-list 'auto-mode-alist '("\\.clj[sx]?\\'" . clojure-mode))
   (add-to-list 'auto-mode-alist '("\\.dtm\\'" . clojure-mode))
   (add-to-list 'auto-mode-alist '("\\.edn\\'" . clojure-mode))
   (add-to-list 'interpreter-mode-alist '("jark" . clojure-mode))
